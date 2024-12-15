@@ -126,6 +126,60 @@
                 height: 60vh;
             }
         }
+
+        .route-marker {
+            background-color: #2d8cf0;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            text-align: center;
+            line-height: 20px;
+            font-size: 12px;
+        }
+
+        .path-description {
+            padding: 10px;
+            background: #f8f8f8;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+
+        .path-description h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+
+        .path-description ol {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .path-description li {
+            margin: 5px 0;
+            color: #666;
+        }
+
+        .distance-info {
+            background: #e8f7ff;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+
+        .distance-info p {
+            margin: 5px 0;
+            color: #2d8cf0;
+        }
+
+        #result-panel {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 15px;
+            padding: 10px;
+            border: 1px solid #e8e8e8;
+            border-radius: 4px;
+        }
     </style>
     <!-- 引入本地的 JSCPP -->
     <script src="lib/jscpp.js"></script>
