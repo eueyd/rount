@@ -1,18 +1,104 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <!-- 头部内容保持不变 -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>成都景点路线规划</title>
     <style>
-        /* 添加错误提示样式 */
-        .error-message {
-            color: red;
-            padding: 10px;
-            margin: 10px 0;
-            border: 1px solid red;
-            border-radius: 4px;
-            background-color: #fff3f3;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        
+
+        body {
+            display: flex;
+            height: 100vh;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+
+        #sidebar {
+            width: 300px;
+            background: #f5f5f5;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        #map-container {
+            flex: 1;
+            height: 100%;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: white;
+            margin-bottom: 10px;
+        }
+
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-bottom: 10px;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background-color: #409EFF;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #66b1ff;
+        }
+
+        .btn-danger {
+            background-color: #F56C6C;
+            color: white;
+            margin-top: 10px;
+        }
+
+        .btn-danger:hover {
+            background-color: #f78989;
+        }
+
+        #result-panel {
+            margin-top: 20px;
+            background: white;
+            border-radius: 4px;
+            padding: 10px;
+            flex: 1;
+            overflow-y: auto;
+            display: none;
+        }
+
+        h2 {
+            color: #303133;
+            margin-bottom: 20px;
+            text-align: center;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #409EFF;
+        }
+
         #debug-panel {
             margin-top: 20px;
             padding: 10px;
@@ -24,9 +110,21 @@
             overflow-y: auto;
             max-height: 200px;
         }
-        
-        /* 其他样式保持不变 */
-        ...
+
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+
+            #sidebar {
+                width: 100%;
+                max-height: 40vh;
+            }
+
+            #map-container {
+                height: 60vh;
+            }
+        }
     </style>
 </head>
 <body>
@@ -43,12 +141,44 @@
         <button onclick="planRoute()" class="btn btn-primary">开始规划路线</button>
         <button onclick="resetMap()" class="btn btn-danger">重置地图</button>
         <div id="result-panel"></div>
-        <div id="debug-panel"></div> <!-- 新增调试面板 -->
+        <div id="debug-panel"></div>
     </div>
     <div id="map-container"></div>
 
+    <script type="text/javascript">
+        window._AMapSecurityConfig = {
+            securityJsCode: '9cf010b11855b6a170165c8258a4ff8a',
+        }
+    </script>
+    <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=6ebca79a4a23917ec971808d8d249dc1&plugin=AMap.Scale,AMap.ToolBar,AMap.Driving"></script>
+
     <script>
-        // 添加调试日志函数
+        const locations = [
+            {name: "东湖公园", lng: 104.088051, lat: 30.61663},
+            {name: "成都东站", lng: 104.140665, lat: 30.629924},
+            {name: "川大望江", lng: 104.083759, lat: 30.631106},
+            {name: "杜甫草堂", lng: 104.028289, lat: 30.660648},
+            {name: "成都动物园", lng: 104.106309, lat: 30.710546},
+            {name: "文殊院", lng: 104.072664, lat: 30.676004},
+            {name: "青龙湖", lng: 104.194739, lat: 30.633593},
+            {name: "川大江安", lng: 103.999861, lat: 30.558013},
+            {name: "双流机场", lng: 103.956033, lat: 30.569634},
+            {name: "四川博物馆", lng: 104.034137, lat: 30.660788},
+            {name: "四川科技馆", lng: 104.065755, lat: 30.660299},
+            {name: "太古里", lng: 104.083645, lat: 30.653435},
+            {name: "春熙路", lng: 104.077165, lat: 30.655798},
+            {name: "东郊记忆", lng: 104.122926, lat: 30.668902},
+            {name: "锦里", lng: 104.049846, lat: 30.646057},
+            {name: "川大华西", lng: 104.06757, lat: 30.641278},
+            {name: "成都图书馆", lng: 104.060747, lat: 30.653056},
+            {name: "万达", lng: 103.926541, lat: 30.596249},
+            {name: "大悦城", lng: 104.011748, lat: 30.625779},
+            {name: "都江堰", lng: 103.610714, lat: 31.004114},
+            {name: "天府公园", lng: 104.072418, lat: 30.433763}
+        ];
+
+        let map, driving, markers = [];
+
         function debug(message, isError = false) {
             const debugPanel = document.getElementById('debug-panel');
             const time = new Date().toLocaleTimeString();
@@ -62,7 +192,6 @@
             debugPanel.scrollTop = debugPanel.scrollHeight;
         }
 
-        // 初始化地图
         function initMap() {
             try {
                 debug('开始初始化地图...');
@@ -75,7 +204,6 @@
 
                 debug('地图实例创建成功');
 
-                // 添加控件
                 map.plugin(['AMap.Scale', 'AMap.ToolBar'], function() {
                     try {
                         map.addControl(new AMap.Scale());
@@ -86,7 +214,6 @@
                     }
                 });
 
-                // 初始化路线规划服务
                 try {
                     driving = new AMap.Driving({
                         map: map,
@@ -98,7 +225,6 @@
                     debug('路线规划服务初始化失败: ' + error.message, true);
                 }
 
-                // 添加标记点
                 debug('开始添加位置标记...');
                 locations.forEach((location, index) => {
                     try {
@@ -125,7 +251,6 @@
                     }
                 });
 
-                // 初始化选择框
                 initSelectors();
                 debug('地图初始化完成');
             } catch (error) {
@@ -134,7 +259,6 @@
             }
         }
 
-        // 初始化选择框
         function initSelectors() {
             try {
                 const startSelect = document.getElementById('start-point');
@@ -151,7 +275,6 @@
             }
         }
 
-        // 规划路线
         async function planRoute() {
             debug('开始规划路线...');
             const startIndex = parseInt(document.getElementById('start-point').value);
@@ -176,10 +299,12 @@
                         if (status === 'complete') {
                             document.getElementById('result-panel').style.display = 'block';
                             debug('路线规划成功');
-                            debug(`路线详情: ${JSON.stringify(result.routes[0].distance)} 米`);
+                            if (result.routes && result.routes[0]) {
+                                debug(`路线详情: 距离 ${result.routes[0].distance} 米`);
+                            }
                         } else {
-                            debug('路线规划失败: ' + result, true);
-                            alert('路线规划失败：' + result);
+                            debug('路线规划失败: ' + JSON.stringify(result), true);
+                            alert('路线规划失败，请查看调试信息');
                         }
                     }
                 );
@@ -189,7 +314,6 @@
             }
         }
 
-        // 重置地图
         function resetMap() {
             try {
                 driving.clear();
@@ -201,7 +325,6 @@
             }
         }
 
-        // 页面加载完成后初始化
         window.onload = function() {
             debug('页面加载完成，开始初始化...');
             try {
@@ -211,7 +334,6 @@
             }
         };
 
-        // 添加错误处理
         window.onerror = function(message, source, lineno, colno, error) {
             debug(`全局错误: ${message}\n来源: ${source}\n行号: ${lineno}`, true);
             return false;
