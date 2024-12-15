@@ -359,63 +359,115 @@
             }
         }
 
+        function processOutput(output) {
+            // 分离实际输出和调试信息
+            const lines = output.split('\n');
+            const pathLine = lines.find(line => !line.startsWith('DEBUG:') && line.trim().length > 0);
+
+            if (!pathLine) {
+                throw new Error('没有找到有效的路径输出');
+            }
+
+            if (pathLine.trim() === 'NO_PATH') {
+                throw new Error('找不到有效路径');
+            }
+
+            return pathLine.trim();
+        }
+
         async function planRoute() {
             try {
                 log('开始规划路线...');
-                const startIndex = parseInt(document.getElementById('start-point').value);
-                const endIndex = parseInt(document.getElementById('end-point').value);
+                const startSelect = document.getElementById('start-point');
+                const endSelect = document.getElementById('end-point');
+
+                const startIndex = parseInt(startSelect.value);
+                const endIndex = parseInt(endSelect.value);
+
+                log(`起点索引: ${startIndex}, 终点索引: ${endIndex}`);
 
                 if (startIndex === endIndex) {
-                    log('错误: 起点和终点相同');
-                    alert('起点和终点不能相同！');
-                    return;
+                    throw new Error('起点和终点不能相同');
                 }
 
                 const start = locations[startIndex];
                 const end = locations[endIndex];
 
-                log(`规划路线: 从 ${start.name} 到 ${end.name}`);
+                log(`规划路线: 从 ${start.name}(${startIndex}) 到 ${end.name}(${endIndex})`);
 
-                // 读取 C++ 代码
+                // 读取C++代码
                 const response = await fetch('route_planner.cpp');
                 const cppCode = await response.text();
-                log('成功读取C++代码');
-                log(`代码长度: ${cppCode.length} 字符`);
+                log('C++代码已加载');
 
-                // 准备输入数据
+                // 准备输入
                 const input = `${startIndex} ${endIndex}\n`;
-                log(`输入数据: ${input}`);
+                log(`输入数据: "${input}"`);
 
-                // 运行 C++ 代码
-                log('开始执行C++代码...');
+                // 运行C++代码
                 const output = JSCPP.run(cppCode, input);
-                log(`C++代码执行结果: ${output}`);
+                log('C++代码执行完成');
+                log(`原始输出: "${output}"`);
 
-                // 解析路径
-                const path = output.trim().split(' ').map(Number);
-                log(`解析后的路径: ${path.join(' -> ')}`);
+                // 查找路径输出行
+                const lines = output.split('\n');
+                const pathLine = lines.find(line => line.startsWith('PATH: '));
+
+                if (!pathLine) {
+                    const noPath = lines.find(line => line.includes('NO_PATH'));
+                    if (noPath) {
+                        throw new Error('找不到可行的路径');
+                    }
+                    throw new Error('无法解析路径输出');
+                }
+
+                // 提取路径数据
+                const pathStr = pathLine.replace('PATH: ', '').trim();
+                log(`处理后的路径字符串: "${pathStr}"`);
+
+                const path = pathStr.split(' ').map(Number);
+                log(`解析后的路径数组: [${path.join(', ')}]`);
+
+                if (path.some(isNaN)) {
+                    throw new Error('路径包含无效数值');
+                }
 
                 // 转换为坐标点
-                const points = path.map(index => [locations[index].lng, locations[index].lat]);
+                const points = path.map(index => {
+                    if (index < 0 || index >= locations.length) {
+                        throw new Error(`无效的位置索引: ${index}`);
+                    }
+                    return [locations[index].lng, locations[index].lat];
+                });
+
                 log(`生成的坐标点: ${JSON.stringify(points)}`);
 
-                // 使用高德地图API绘制路线
+                // 显示结果面板
+                const resultPanel = document.getElementById('result-panel');
+                resultPanel.style.display = 'block';
+
+                // 绘制路线
+                driving.clear();
+                log('开始调用高德地图API...');
+
                 driving.search(
                     points[0],
                     points[points.length - 1],
+                    {
+                        waypoints: points.slice(1, -1)
+                    },
                     function (status, result) {
                         if (status === 'complete') {
                             log('路线规划成功');
                         } else {
-                            log(`路线规划失败: "${status}"`);
-                            alert(`路线规划失败: ${status}`);
+                            log(`路线规划失败: ${status}`);
+                            throw new Error(`路线规划失败: ${status}`);
                         }
                     }
                 );
             } catch (error) {
-                log(`路线规划错误: ${error.message}`);
-                log(`错误堆栈: ${error.stack}`);
-                alert(`发生错误: ${error.message}`);
+                log(`错误: ${error.message}`, true);
+                alert(error.message);
             }
         }
         document.addEventListener('DOMContentLoaded', checkJSCPP);
