@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -126,8 +127,10 @@
             }
         }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/jscpp/dist/JSCPP.es5.min.js"></script>
+    <!-- 引入本地的 JSCPP -->
+    <script src="lib/jscpp.js"></script>
 </head>
+
 <body>
     <div id="sidebar">
         <h2>成都景点路线规划</h2>
@@ -151,31 +154,32 @@
             securityJsCode: '9cf010b11855b6a170165c8258a4ff8a',
         }
     </script>
-    <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=6ebca79a4a23917ec971808d8d249dc1&plugin=AMap.Scale,AMap.ToolBar,AMap.Driving"></script>
+    <script type="text/javascript"
+        src="https://webapi.amap.com/maps?v=2.0&key=6ebca79a4a23917ec971808d8d249dc1&plugin=AMap.Scale,AMap.ToolBar,AMap.Driving"></script>
 
     <script>
         const locations = [
-            {name: "东湖公园", lng: 104.088051, lat: 30.61663},
-            {name: "成都东站", lng: 104.140665, lat: 30.629924},
-            {name: "川大望江", lng: 104.083759, lat: 30.631106},
-            {name: "杜甫草堂", lng: 104.028289, lat: 30.660648},
-            {name: "成都动物园", lng: 104.106309, lat: 30.710546},
-            {name: "文殊院", lng: 104.072664, lat: 30.676004},
-            {name: "青龙湖", lng: 104.194739, lat: 30.633593},
-            {name: "川大江安", lng: 103.999861, lat: 30.558013},
-            {name: "双流机场", lng: 103.956033, lat: 30.569634},
-            {name: "四川博物馆", lng: 104.034137, lat: 30.660788},
-            {name: "四川科技馆", lng: 104.065755, lat: 30.660299},
-            {name: "太古里", lng: 104.083645, lat: 30.653435},
-            {name: "春熙路", lng: 104.077165, lat: 30.655798},
-            {name: "东郊记忆", lng: 104.122926, lat: 30.668902},
-            {name: "锦里", lng: 104.049846, lat: 30.646057},
-            {name: "川大华西", lng: 104.06757, lat: 30.641278},
-            {name: "成都图书馆", lng: 104.060747, lat: 30.653056},
-            {name: "万达", lng: 103.926541, lat: 30.596249},
-            {name: "大悦城", lng: 104.011748, lat: 30.625779},
-            {name: "都江堰", lng: 103.610714, lat: 31.004114},
-            {name: "天府公园", lng: 104.072418, lat: 30.433763}
+            { name: "东湖公园", lng: 104.088051, lat: 30.61663 },
+            { name: "成都东站", lng: 104.140665, lat: 30.629924 },
+            { name: "川大望江", lng: 104.083759, lat: 30.631106 },
+            { name: "杜甫草堂", lng: 104.028289, lat: 30.660648 },
+            { name: "成都动物园", lng: 104.106309, lat: 30.710546 },
+            { name: "文殊院", lng: 104.072664, lat: 30.676004 },
+            { name: "青龙湖", lng: 104.194739, lat: 30.633593 },
+            { name: "川大江安", lng: 103.999861, lat: 30.558013 },
+            { name: "双流机场", lng: 103.956033, lat: 30.569634 },
+            { name: "四川博物馆", lng: 104.034137, lat: 30.660788 },
+            { name: "四川科技馆", lng: 104.065755, lat: 30.660299 },
+            { name: "太古里", lng: 104.083645, lat: 30.653435 },
+            { name: "春熙路", lng: 104.077165, lat: 30.655798 },
+            { name: "东郊记忆", lng: 104.122926, lat: 30.668902 },
+            { name: "锦里", lng: 104.049846, lat: 30.646057 },
+            { name: "川大华西", lng: 104.06757, lat: 30.641278 },
+            { name: "成都图书馆", lng: 104.060747, lat: 30.653056 },
+            { name: "万达", lng: 103.926541, lat: 30.596249 },
+            { name: "大悦城", lng: 104.011748, lat: 30.625779 },
+            { name: "都江堰", lng: 103.610714, lat: 31.004114 },
+            { name: "天府公园", lng: 104.072418, lat: 30.433763 }
         ];
 
         let map, driving, markers = [];
@@ -185,7 +189,7 @@
             const time = new Date().toLocaleTimeString();
             const logMessage = `[${time}] ${message}`;
             console.log(logMessage);
-            
+
             const logElement = document.createElement('div');
             logElement.style.color = isError ? 'red' : 'black';
             logElement.textContent = logMessage;
@@ -196,7 +200,7 @@
         function initMap() {
             try {
                 debug('开始初始化地图...');
-                
+
                 map = new AMap.Map('map-container', {
                     zoom: 12,
                     center: [104.066801, 30.572961],
@@ -205,7 +209,7 @@
 
                 debug('地图实例创建成功');
 
-                map.plugin(['AMap.Scale', 'AMap.ToolBar'], function() {
+                map.plugin(['AMap.Scale', 'AMap.ToolBar'], function () {
                     try {
                         map.addControl(new AMap.Scale());
                         map.addControl(new AMap.ToolBar());
@@ -264,7 +268,7 @@
             try {
                 const startSelect = document.getElementById('start-point');
                 const endSelect = document.getElementById('end-point');
-                
+
                 locations.forEach((location, index) => {
                     const option = new Option(location.name, index);
                     startSelect.add(option.cloneNode(true));
@@ -276,88 +280,122 @@
             }
         }
 
-        async function planRoute() {
-    try {
-        log('开始规划路线...');
-        const startIndex = parseInt(document.getElementById('start-point').value);
-        const endIndex = parseInt(document.getElementById('end-point').value);
 
-        if (startIndex === endIndex) {
-            log('错误: 起点和终点相同');
-            alert('起点和终点不能相同！');
-            return;
+
+        let JSCPP_READY = false;
+
+        // 检查 JSCPP 是否加载
+        function checkJSCPP() {
+            if (typeof JSCPP !== 'undefined') {
+                JSCPP_READY = true;
+                log('JSCPP 加载成功');
+            } else {
+                log('JSCPP 未加载，尝试重新加载...');
+                // 重新加载 JSCPP
+                const script = document.createElement('script');
+                script.src = "https://cdn.jsdelivr.net/npm/jscpp/dist/JSCPP.es5.min.js";
+                script.onload = () => {
+                    JSCPP_READY = true;
+                    log('JSCPP 重新加载成功');
+                };
+                script.onerror = () => {
+                    log('JSCPP 加载失败，请检查网络连接');
+                };
+                document.head.appendChild(script);
+            }
         }
 
-        const start = locations[startIndex];
-        const end = locations[endIndex];
-        
-        log(`规划路线: 从 ${start.name} 到 ${end.name}`);
-
-        try {
-            // 读取 C++ 代码
-            const response = await fetch('route_planner.cpp');
-            const cppCode = await response.text();
-            log('成功读取C++代码');
-            log(`代码长度: ${cppCode.length} 字符`);
-
-            // 准备输入数据
-            const input = `${startIndex} ${endIndex}\n`;
-            log(`输入数据: ${input}`);
-
-            // 运行 C++ 代码
-            log('开始执行C++代码...');
-            const output = await JSCPP.run(cppCode, input);
-            log(`C++代码执行结果: ${output}`);
-
-            const path = output.split(' ').map(Number);
-            log(`解析后的路径: ${path.join(' -> ')}`);
-
-            const points = path.map(index => [locations[index].lng, locations[index].lat]);
-            log(`生成的坐标点: ${JSON.stringify(points)}`);
-
-            driving.search(
-                points[0], 
-                points[points.length - 1],
-                function(status, result) {
-                    if (status === 'complete') {
-                        log('路线规划成功');
-                    } else {
-                        log(`路线规划失败: "${status}"`);
-                        log(`错误详情: ${JSON.stringify(result)}`);
-                        alert(`路线规划失败: ${status}`);
+        async function planRoute() {
+            try {
+                log('开始规划路线...');
+                // 检查 JSCPP 是否可用
+                if (!JSCPP_READY) {
+                    log('JSCPP 未就绪，正在检查...');
+                    checkJSCPP();
+                    if (!JSCPP_READY) {
+                        throw new Error('JSCPP 库未能正确加载，请刷新页面重试');
                     }
                 }
-            );
-        } catch (innerError) {
-            log(`C++代码执行错误: ${innerError.message}`);
-            log(`错误堆栈: ${innerError.stack}`);
-            alert(`路线规划出错: ${innerError.message}`);
+                const startIndex = parseInt(document.getElementById('start-point').value);
+                const endIndex = parseInt(document.getElementById('end-point').value);
+
+                if (startIndex === endIndex) {
+                    log('错误: 起点和终点相同');
+                    alert('起点和终点不能相同！');
+                    return;
+                }
+
+                const start = locations[startIndex];
+                const end = locations[endIndex];
+
+                log(`规划路线: 从 ${start.name} 到 ${end.name}`);
+
+                try {
+                    // 读取 C++ 代码
+                    const response = await fetch('route_planner.cpp');
+                    const cppCode = await response.text();
+                    log('成功读取C++代码');
+                    log(`代码长度: ${cppCode.length} 字符`);
+
+                    // 准备输入数据
+                    const input = `${startIndex} ${endIndex}\n`;
+                    log(`输入数据: ${input}`);
+
+                    // 运行 C++ 代码
+                    log('开始执行C++代码...');
+                    const output = await JSCPP.run(cppCode, input);
+                    log(`C++代码执行结果: ${output}`);
+
+                    const path = output.split(' ').map(Number);
+                    log(`解析后的路径: ${path.join(' -> ')}`);
+
+                    const points = path.map(index => [locations[index].lng, locations[index].lat]);
+                    log(`生成的坐标点: ${JSON.stringify(points)}`);
+
+                    driving.search(
+                        points[0],
+                        points[points.length - 1],
+                        function (status, result) {
+                            if (status === 'complete') {
+                                log('路线规划成功');
+                            } else {
+                                log(`路线规划失败: "${status}"`);
+                                log(`错误详情: ${JSON.stringify(result)}`);
+                                alert(`路线规划失败: ${status}`);
+                            }
+                        }
+                    );
+                } catch (innerError) {
+                    log(`C++代码执行错误: ${innerError.message}`);
+                    log(`错误堆栈: ${innerError.stack}`);
+                    alert(`路线规划出错: ${innerError.message}`);
+                }
+            } catch (error) {
+                log(`路线规划错误: ${error.message}`);
+                log(`错误堆栈: ${error.stack}`);
+                alert(`发生错误: ${error.message}`);
+            }
         }
-    } catch (error) {
-        log(`路线规划错误: ${error.message}`);
-        log(`错误堆栈: ${error.stack}`);
-        alert(`发生错误: ${error.message}`);
-    }
-}
+        document.addEventListener('DOMContentLoaded', checkJSCPP);
 
-// 调试信息输出函数
-function log(message) {
-    const now = new Date();
-    const time = now.toLocaleTimeString();
-    const debugPanel = document.getElementById('debug-panel');
-    if (debugPanel) {
-        debugPanel.innerHTML += `[${time}] ${message}<br>`;
-        debugPanel.scrollTop = debugPanel.scrollHeight;
-    }
-    console.log(`[${time}] ${message}`);
-}
+        // 调试信息输出函数
+        function log(message) {
+            const now = new Date();
+            const time = now.toLocaleTimeString();
+            const debugPanel = document.getElementById('debug-panel');
+            if (debugPanel) {
+                debugPanel.innerHTML += `[${time}] ${message}<br>`;
+                debugPanel.scrollTop = debugPanel.scrollHeight;
+            }
+            console.log(`[${time}] ${message}`);
+        }
 
-// 确保调试面板存在
-document.addEventListener('DOMContentLoaded', function() {
-    if (!document.getElementById('debug-panel')) {
-        const panel = document.createElement('div');
-        panel.id = 'debug-panel';
-        panel.style.cssText = `
+        // 确保调试面板存在
+        document.addEventListener('DOMContentLoaded', function () {
+            if (!document.getElementById('debug-panel')) {
+                const panel = document.createElement('div');
+                panel.id = 'debug-panel';
+                panel.style.cssText = `
             max-height: 200px;
             overflow-y: auto;
             margin-top: 20px;
@@ -367,9 +405,9 @@ document.addEventListener('DOMContentLoaded', function() {
             font-family: monospace;
             font-size: 12px;
         `;
-        document.getElementById('sidebar').appendChild(panel);
-    }
-});
+                document.getElementById('sidebar').appendChild(panel);
+            }
+        });
 
         function resetMap() {
             try {
@@ -382,7 +420,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        window.onload = function() {
+        window.onload = function () {
             debug('页面加载完成，开始初始化...');
             try {
                 initMap();
@@ -391,10 +429,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         };
 
-        window.onerror = function(message, source, lineno, colno, error) {
+        window.onerror = function (message, source, lineno, colno, error) {
             debug(`全局错误: ${message}\n来源: ${source}\n行号: ${lineno}`, true);
             return false;
         };
     </script>
 </body>
+
 </html>
