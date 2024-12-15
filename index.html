@@ -308,14 +308,6 @@
         async function planRoute() {
             try {
                 log('开始规划路线...');
-                // 检查 JSCPP 是否可用
-                if (!JSCPP_READY) {
-                    log('JSCPP 未就绪，正在检查...');
-                    checkJSCPP();
-                    if (!JSCPP_READY) {
-                        throw new Error('JSCPP 库未能正确加载，请刷新页面重试');
-                    }
-                }
                 const startIndex = parseInt(document.getElementById('start-point').value);
                 const endIndex = parseInt(document.getElementById('end-point').value);
 
@@ -330,46 +322,42 @@
 
                 log(`规划路线: 从 ${start.name} 到 ${end.name}`);
 
-                try {
-                    // 读取 C++ 代码
-                    const response = await fetch('route_planner.cpp');
-                    const cppCode = await response.text();
-                    log('成功读取C++代码');
-                    log(`代码长度: ${cppCode.length} 字符`);
+                // 读取 C++ 代码
+                const response = await fetch('route_planner.cpp');
+                const cppCode = await response.text();
+                log('成功读取C++代码');
+                log(`代码长度: ${cppCode.length} 字符`);
 
-                    // 准备输入数据
-                    const input = `${startIndex} ${endIndex}\n`;
-                    log(`输入数据: ${input}`);
+                // 准备输入数据
+                const input = `${startIndex} ${endIndex}\n`;
+                log(`输入数据: ${input}`);
 
-                    // 运行 C++ 代码
-                    log('开始执行C++代码...');
-                    const output = await JSCPP.run(cppCode, input);
-                    log(`C++代码执行结果: ${output}`);
+                // 运行 C++ 代码
+                log('开始执行C++代码...');
+                const output = JSCPP.run(cppCode, input);
+                log(`C++代码执行结果: ${output}`);
 
-                    const path = output.split(' ').map(Number);
-                    log(`解析后的路径: ${path.join(' -> ')}`);
+                // 解析路径
+                const path = output.trim().split(' ').map(Number);
+                log(`解析后的路径: ${path.join(' -> ')}`);
 
-                    const points = path.map(index => [locations[index].lng, locations[index].lat]);
-                    log(`生成的坐标点: ${JSON.stringify(points)}`);
+                // 转换为坐标点
+                const points = path.map(index => [locations[index].lng, locations[index].lat]);
+                log(`生成的坐标点: ${JSON.stringify(points)}`);
 
-                    driving.search(
-                        points[0],
-                        points[points.length - 1],
-                        function (status, result) {
-                            if (status === 'complete') {
-                                log('路线规划成功');
-                            } else {
-                                log(`路线规划失败: "${status}"`);
-                                log(`错误详情: ${JSON.stringify(result)}`);
-                                alert(`路线规划失败: ${status}`);
-                            }
+                // 使用高德地图API绘制路线
+                driving.search(
+                    points[0],
+                    points[points.length - 1],
+                    function (status, result) {
+                        if (status === 'complete') {
+                            log('路线规划成功');
+                        } else {
+                            log(`路线规划失败: "${status}"`);
+                            alert(`路线规划失败: ${status}`);
                         }
-                    );
-                } catch (innerError) {
-                    log(`C++代码执行错误: ${innerError.message}`);
-                    log(`错误堆栈: ${innerError.stack}`);
-                    alert(`路线规划出错: ${innerError.message}`);
-                }
+                    }
+                );
             } catch (error) {
                 log(`路线规划错误: ${error.message}`);
                 log(`错误堆栈: ${error.stack}`);

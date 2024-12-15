@@ -1,19 +1,33 @@
-#include <stdlib.h>
-#include <math.h>
+#include <iostream>
+using namespace std;
 
-// 避免使用 emscripten/bind.h，改用纯C接口
-extern "C" {
-
-// 使用简单的C数组代替vector
-int* findShortestPath(double* distances, int n, int start, int end, int* pathLength) {
+int main() {
+    // 从标准输入读取起点和终点
+    int start, end;
+    cin >> start >> end;
+    
+    // 硬编码的测试图（相邻点之间的距离）
+    const int n = 21;  // 21个地点
+    double distances[n][n] = {0};  // 初始化为0
+    
+    // 设置一些测试距离（这里只是示例，您需要设置实际的距离）
+    for(int i = 0; i < n; i++) {
+        for(int j = 0; j < n; j++) {
+            if(i != j) {
+                // 设置一个默认距离，实际应用中需要使用真实距离
+                distances[i][j] = 1.0;  // 或者其他合适的默认值
+            }
+        }
+    }
+    
     // 初始化辅助数组
-    double* dist = (double*)malloc(n * sizeof(double));
-    int* prev = (int*)malloc(n * sizeof(int));
-    bool* visited = (bool*)malloc(n * sizeof(bool));
+    double dist[n];
+    int prev[n];
+    bool visited[n];
     
     // 初始化距离数组
     for(int i = 0; i < n; i++) {
-        dist[i] = INFINITY;
+        dist[i] = 1e9;  // 用一个很大的数代替INFINITY
         prev[i] = -1;
         visited[i] = false;
     }
@@ -23,7 +37,7 @@ int* findShortestPath(double* distances, int n, int start, int end, int* pathLen
     for(int i = 0; i < n; i++) {
         // 找到最近的未访问节点
         int u = -1;
-        double minDist = INFINITY;
+        double minDist = 1e9;
         for(int j = 0; j < n; j++) {
             if(!visited[j] && dist[j] < minDist) {
                 minDist = dist[j];
@@ -36,44 +50,27 @@ int* findShortestPath(double* distances, int n, int start, int end, int* pathLen
         
         // 更新邻居节点的距离
         for(int v = 0; v < n; v++) {
-            double weight = distances[u * n + v];
-            if(weight > 0 && !visited[v] && 
-               dist[u] + weight < dist[v]) {
-                dist[v] = dist[u] + weight;
+            if(distances[u][v] > 0 && !visited[v] && 
+               dist[u] + distances[u][v] < dist[v]) {
+                dist[v] = dist[u] + distances[u][v];
                 prev[v] = u;
             }
         }
     }
     
-    // 构建路径
-    int maxLength = n;
-    int* tempPath = (int*)malloc(maxLength * sizeof(int));
-    int pathIdx = 0;
-    
-    // 从终点回溯到起点
+    // 构建并输出路径
+    int path[n];
+    int pathLen = 0;
     for(int v = end; v != -1; v = prev[v]) {
-        tempPath[pathIdx++] = v;
+        path[pathLen++] = v;
     }
     
-    // 反转路径
-    int* path = (int*)malloc(pathIdx * sizeof(int));
-    for(int i = 0; i < pathIdx; i++) {
-        path[i] = tempPath[pathIdx - 1 - i];
+    // 反转并输出路径
+    for(int i = pathLen - 1; i >= 0; i--) {
+        cout << path[i];
+        if(i > 0) cout << " ";
     }
+    cout << endl;
     
-    // 清理内存
-    free(dist);
-    free(prev);
-    free(visited);
-    free(tempPath);
-    
-    *pathLength = pathIdx;
-    return path;
+    return 0;
 }
-
-// 释放路径内存
-void freePath(int* path) {
-    free(path);
-}
-
-} // extern "C"
