@@ -126,6 +126,7 @@
             }
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/jscpp/dist/JSCPP.es5.min.js"></script>
 </head>
 <body>
     <div id="sidebar">
@@ -276,43 +277,99 @@
         }
 
         async function planRoute() {
-            debug('开始规划路线...');
-            const startIndex = parseInt(document.getElementById('start-point').value);
-            const endIndex = parseInt(document.getElementById('end-point').value);
+    try {
+        log('开始规划路线...');
+        const startIndex = parseInt(document.getElementById('start-point').value);
+        const endIndex = parseInt(document.getElementById('end-point').value);
 
-            if (startIndex === endIndex) {
-                debug('起点和终点相同', true);
-                alert('起点和终点不能相同！');
-                return;
-            }
-
-            try {
-                const start = locations[startIndex];
-                const end = locations[endIndex];
-                
-                debug(`规划路线: 从 ${start.name} 到 ${end.name}`);
-
-                driving.search(
-                    [start.lng, start.lat],
-                    [end.lng, end.lat],
-                    function(status, result) {
-                        if (status === 'complete') {
-                            document.getElementById('result-panel').style.display = 'block';
-                            debug('路线规划成功');
-                            if (result.routes && result.routes[0]) {
-                                debug(`路线详情: 距离 ${result.routes[0].distance} 米`);
-                            }
-                        } else {
-                            debug('路线规划失败: ' + JSON.stringify(result), true);
-                            alert('路线规划失败，请查看调试信息');
-                        }
-                    }
-                );
-            } catch (error) {
-                debug('路线规划出错: ' + error.message, true);
-                alert('路线规划失败，请查看调试信息');
-            }
+        if (startIndex === endIndex) {
+            log('错误: 起点和终点相同');
+            alert('起点和终点不能相同！');
+            return;
         }
+
+        const start = locations[startIndex];
+        const end = locations[endIndex];
+        
+        log(`规划路线: 从 ${start.name} 到 ${end.name}`);
+
+        try {
+            // 读取 C++ 代码
+            const response = await fetch('route_planner.cpp');
+            const cppCode = await response.text();
+            log('成功读取C++代码');
+            log(`代码长度: ${cppCode.length} 字符`);
+
+            // 准备输入数据
+            const input = `${startIndex} ${endIndex}\n`;
+            log(`输入数据: ${input}`);
+
+            // 运行 C++ 代码
+            log('开始执行C++代码...');
+            const output = await JSCPP.run(cppCode, input);
+            log(`C++代码执行结果: ${output}`);
+
+            const path = output.split(' ').map(Number);
+            log(`解析后的路径: ${path.join(' -> ')}`);
+
+            const points = path.map(index => [locations[index].lng, locations[index].lat]);
+            log(`生成的坐标点: ${JSON.stringify(points)}`);
+
+            driving.search(
+                points[0], 
+                points[points.length - 1],
+                function(status, result) {
+                    if (status === 'complete') {
+                        log('路线规划成功');
+                    } else {
+                        log(`路线规划失败: "${status}"`);
+                        log(`错误详情: ${JSON.stringify(result)}`);
+                        alert(`路线规划失败: ${status}`);
+                    }
+                }
+            );
+        } catch (innerError) {
+            log(`C++代码执行错误: ${innerError.message}`);
+            log(`错误堆栈: ${innerError.stack}`);
+            alert(`路线规划出错: ${innerError.message}`);
+        }
+    } catch (error) {
+        log(`路线规划错误: ${error.message}`);
+        log(`错误堆栈: ${error.stack}`);
+        alert(`发生错误: ${error.message}`);
+    }
+}
+
+// 调试信息输出函数
+function log(message) {
+    const now = new Date();
+    const time = now.toLocaleTimeString();
+    const debugPanel = document.getElementById('debug-panel');
+    if (debugPanel) {
+        debugPanel.innerHTML += `[${time}] ${message}<br>`;
+        debugPanel.scrollTop = debugPanel.scrollHeight;
+    }
+    console.log(`[${time}] ${message}`);
+}
+
+// 确保调试面板存在
+document.addEventListener('DOMContentLoaded', function() {
+    if (!document.getElementById('debug-panel')) {
+        const panel = document.createElement('div');
+        panel.id = 'debug-panel';
+        panel.style.cssText = `
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 20px;
+            padding: 10px;
+            background: #fff;
+            border: 1px solid #ddd;
+            font-family: monospace;
+            font-size: 12px;
+        `;
+        document.getElementById('sidebar').appendChild(panel);
+    }
+});
 
         function resetMap() {
             try {
