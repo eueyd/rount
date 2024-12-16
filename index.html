@@ -375,6 +375,17 @@
             return pathLine.trim();
         }
 
+
+        function processError(output) {
+            const lines = output.split('\n');
+            for (const line of lines) {
+                if (line.startsWith('ERROR:')) {
+                    return line.substring(7).trim();
+                }
+            }
+            return null;
+        }
+
         async function planRoute() {
             try {
                 log('开始规划路线...');
@@ -409,35 +420,42 @@
                 log('C++代码执行完成');
                 log(`原始输出: "${output}"`);
 
-                // 查找路径输出行
+                // 检查错误
+                const error = processError(output);
+                if (error) {
+                    throw new Error(error);
+                }
+
+                // 解析输出
                 const lines = output.split('\n');
                 const pathLine = lines.find(line => line.startsWith('PATH: '));
+                const distanceLine = lines.find(line => line.startsWith('DISTANCE: '));
 
                 if (!pathLine) {
-                    const noPath = lines.find(line => line.includes('NO_PATH'));
+                    const noPath = lines.find(line => line === 'NO_PATH');
                     if (noPath) {
                         throw new Error('找不到可行的路径');
                     }
                     throw new Error('无法解析路径输出');
                 }
 
-                // 提取路径数据
                 const pathStr = pathLine.replace('PATH: ', '').trim();
                 log(`处理后的路径字符串: "${pathStr}"`);
 
                 const path = pathStr.split(' ').map(Number);
                 log(`解析后的路径数组: [${path.join(', ')}]`);
 
-                if (path.some(isNaN)) {
-                    throw new Error('路径包含无效数值');
+                // 解析距离
+                let totalDistance = 0;
+                if (distanceLine) {
+                    totalDistance = parseFloat(distanceLine.replace('DISTANCE: ', '').trim());
+                    log(`总距离: ${totalDistance.toFixed(2)} 公里`);
                 }
 
                 // 转换为坐标点
                 const points = path.map(index => {
-                    if (index < 0 || index >= locations.length) {
-                        throw new Error(`无效的位置索引: ${index}`);
-                    }
-                    return [locations[index].lng, locations[index].lat];
+                    const location = locations[index];
+                    return [location.lng, location.lat];
                 });
 
                 log(`生成的坐标点: ${JSON.stringify(points)}`);
@@ -445,6 +463,17 @@
                 // 显示结果面板
                 const resultPanel = document.getElementById('result-panel');
                 resultPanel.style.display = 'block';
+                resultPanel.innerHTML = `
+            <div class="path-description">
+                <h3>推荐路线</h3>
+                <div class="distance-info">
+                    <p>总距离: ${totalDistance.toFixed(2)} 公里</p>
+                </div>
+                <ol>
+                    ${path.map(index => `<li>${locations[index].name}</li>`).join('')}
+                </ol>
+            </div>
+        `;
 
                 // 绘制路线
                 driving.clear();
@@ -461,7 +490,7 @@
                             log('路线规划成功');
                         } else {
                             log(`路线规划失败: ${status}`);
-                            throw new Error(`路线规划失败: ${status}`);
+                            alert(`路线规划失败: ${status}`);
                         }
                     }
                 );
@@ -470,6 +499,7 @@
                 alert(error.message);
             }
         }
+
         document.addEventListener('DOMContentLoaded', checkJSCPP);
 
         // 调试信息输出函数
