@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html>
-
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -92,14 +91,6 @@
             display: none;
         }
 
-        h2 {
-            color: #303133;
-            margin-bottom: 20px;
-            text-align: center;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #409EFF;
-        }
-
         #debug-panel {
             margin-top: 20px;
             padding: 10px;
@@ -112,52 +103,11 @@
             max-height: 200px;
         }
 
-        @media (max-width: 768px) {
-            body {
-                flex-direction: column;
-            }
-
-            #sidebar {
-                width: 100%;
-                max-height: 40vh;
-            }
-
-            #map-container {
-                height: 60vh;
-            }
-        }
-
-        .route-marker {
-            background-color: #2d8cf0;
-            color: white;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            text-align: center;
-            line-height: 20px;
-            font-size: 12px;
-        }
-
         .path-description {
             padding: 10px;
             background: #f8f8f8;
             border-radius: 4px;
             margin-top: 10px;
-        }
-
-        .path-description h3 {
-            margin: 0 0 10px 0;
-            color: #333;
-        }
-
-        .path-description ol {
-            margin: 0;
-            padding-left: 20px;
-        }
-
-        .path-description li {
-            margin: 5px 0;
-            color: #666;
         }
 
         .distance-info {
@@ -166,25 +116,8 @@
             border-radius: 4px;
             margin-bottom: 10px;
         }
-
-        .distance-info p {
-            margin: 5px 0;
-            color: #2d8cf0;
-        }
-
-        #result-panel {
-            max-height: 300px;
-            overflow-y: auto;
-            margin-top: 15px;
-            padding: 10px;
-            border: 1px solid #e8e8e8;
-            border-radius: 4px;
-        }
     </style>
-    <!-- 引入本地的 JSCPP -->
-    <script src="lib/jscpp.js"></script>
 </head>
-
 <body>
     <div id="sidebar">
         <h2>成都景点路线规划</h2>
@@ -208,9 +141,14 @@
             securityJsCode: '9cf010b11855b6a170165c8258a4ff8a',
         }
     </script>
-    <script type="text/javascript"
-        src="https://webapi.amap.com/maps?v=2.0&key=6ebca79a4a23917ec971808d8d249dc1&plugin=AMap.Scale,AMap.ToolBar,AMap.Driving"></script>
-
+    <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=6ebca79a4a23917ec971808d8d249dc1&plugin=AMap.Scale,AMap.ToolBar,AMap.Driving"></script>
+    <script type="text/javascript">
+        window._AMapSecurityConfig = {
+            securityJsCode: '9cf010b11855b6a170165c8258a4ff8a',
+        }
+    </script>
+    <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=6ebca79a4a23917ec971808d8d249dc1&plugin=AMap.Scale,AMap.ToolBar,AMap.Driving"></script>
+    <script src="lib/jscpp.js"></script>
     <script>
         const locations = [
             { name: "东湖公园", lng: 104.088051, lat: 30.61663 },
@@ -235,7 +173,6 @@
             { name: "都江堰", lng: 103.610714, lat: 31.004114 },
             { name: "天府公园", lng: 104.072418, lat: 30.433763 }
         ];
-
         let map, driving, markers = [];
 
         function debug(message, isError = false) {
@@ -263,51 +200,37 @@
 
                 debug('地图实例创建成功');
 
-                map.plugin(['AMap.Scale', 'AMap.ToolBar'], function () {
-                    try {
-                        map.addControl(new AMap.Scale());
-                        map.addControl(new AMap.ToolBar());
-                        debug('地图控件添加成功');
-                    } catch (error) {
-                        debug('添加地图控件失败: ' + error.message, true);
-                    }
-                });
+                map.addControl(new AMap.Scale());
+                map.addControl(new AMap.ToolBar());
+                debug('地图控件添加成功');
 
-                try {
-                    driving = new AMap.Driving({
-                        map: map,
-                        panel: "result-panel",
-                        policy: AMap.DrivingPolicy.LEAST_TIME
-                    });
-                    debug('路线规划服务初始化成功');
-                } catch (error) {
-                    debug('路线规划服务初始化失败: ' + error.message, true);
-                }
+                driving = new AMap.Driving({
+                    map: map,
+                    panel: "result-panel",
+                    policy: AMap.DrivingPolicy.LEAST_TIME
+                });
+                debug('路线规划服务初始化成功');
 
                 debug('开始添加位置标记...');
                 locations.forEach((location, index) => {
-                    try {
-                        const marker = new AMap.Marker({
-                            position: [location.lng, location.lat],
-                            title: location.name,
-                            animation: 'AMAP_ANIMATION_DROP'
-                        });
+                    const marker = new AMap.Marker({
+                        position: [location.lng, location.lat],
+                        title: location.name,
+                        animation: 'AMAP_ANIMATION_DROP'
+                    });
 
-                        marker.on('click', () => {
-                            new AMap.InfoWindow({
-                                content: `<div style="padding:10px;">
-                                           <h3>${location.name}</h3>
-                                           <p>经度：${location.lng}<br>纬度：${location.lat}</p>
-                                         </div>`
-                            }).open(map, marker.getPosition());
-                        });
+                    marker.on('click', () => {
+                        new AMap.InfoWindow({
+                            content: `<div style="padding:10px;">
+                                       <h3>${location.name}</h3>
+                                       <p>经度：${location.lng}<br>纬度：${location.lat}</p>
+                                     </div>`
+                        }).open(map, marker.getPosition());
+                    });
 
-                        marker.setMap(map);
-                        markers.push(marker);
-                        debug(`标记点添加成功: ${location.name}`);
-                    } catch (error) {
-                        debug(`添加标记点失败 [${location.name}]: ${error.message}`, true);
-                    }
+                    marker.setMap(map);
+                    markers.push(marker);
+                    debug(`标记点添加成功: ${location.name}`);
                 });
 
                 initSelectors();
@@ -334,210 +257,173 @@
             }
         }
 
-
-
-        let JSCPP_READY = false;
-
-        //checkJSCPP 函数
-        function checkJSCPP() {
-            return new Promise((resolve, reject) => {
-                if (typeof JSCPP !== 'undefined') {
-                    JSCPP_READY = true;
-                    log('JSCPP 加载成功');
-                    resolve();
-                } else {
-                    log('JSCPP 未加载，尝试重新加载...');
-                    const script = document.createElement('script');
-                    script.src = "lib/jscpp.js";  // 使用本地路径
-                    script.onload = () => {
-                        JSCPP_READY = true;
-                        log('JSCPP 重新加载成功');
-                        resolve();
-                    };
-                    script.onerror = () => {
-                        const error = 'JSCPP 加载失败';
-                        log(error);
-                        reject(new Error(error));
-                    };
-                    document.head.appendChild(script);
-                }
-            });
-        }
-
-
-
-        function processError(output) {
-            const lines = output.split('\n');
-            for (const line of lines) {
-                if (line.startsWith('ERROR:')) {
-                    return line.substring(7).trim();
-                }
-            }
-            return null;
-        }
-
-        // 修复 processOutput 函数
-        function processOutput(output) {
-            const lines = output.trim().split('\n');
-            const pathLine = lines.find(line => !line.startsWith('DEBUG:') && line.trim().length > 0);
-
-            if (!pathLine) {
-                throw new Error('没有找到有效的路径输出');
-            }
-
-            if (pathLine.trim() === 'NO_PATH') {
-                throw new Error('找不到有效路径');
-            }
-
-            return pathLine.trim();
-        }
-
-        // 修复 planRoute 函数
         async function planRoute() {
-            try {
-                await checkJSCPP();
-                log('开始规划路线...');
+    try {
+        debug('开始规划路线...');
 
-                const startSelect = document.getElementById('start-point');
-                const endSelect = document.getElementById('end-point');
+        const startSelect = document.getElementById('start-point');
+        const endSelect = document.getElementById('end-point');
 
-                const startIndex = parseInt(startSelect.value);
-                const endIndex = parseInt(endSelect.value);
+        const startIndex = parseInt(startSelect.value);
+        const endIndex = parseInt(endSelect.value);
 
-                log(`起点索引: ${startIndex}, 终点索引: ${endIndex}`);
+        debug(`检查起点终点索引: start=${startIndex}, end=${endIndex}`);
+        debug(`起点: ${locations[startIndex].name} (索引=${startIndex})`);
+        debug(`终点: ${locations[endIndex].name} (索引=${endIndex})`);
 
-                if (startIndex === endIndex) {
-                    throw new Error('起点和终点不能相同');
-                }
-
-                const start = locations[startIndex];
-                const end = locations[endIndex];
-
-                log(`规划路线: 从 ${start.name}(${startIndex}) 到 ${end.name}(${endIndex})`);
-
-                // 读取 C++ 代码文件
-                const response = await fetch('route_planner.cpp');
-                if (!response.ok) {
-                    throw new Error('无法加载 C++ 代码文件');
-                }
-                const cppCode = await response.text();
-
-                // 准备输入数据
-                const input = `${startIndex} ${endIndex}\n`;
-
-                // 配置 JSCPP 运行选项
-                const config = {
-                    stdio: {
-                        write: function (s) {
-                            log("C++ 输出: " + s);
-                        }
-                    }
-                };
-
-                // 执行 C++ 代码并处理结果
-                try {
-                    const output = JSCPP.run(cppCode, input, config);
-                    log("C++ 执行结果: " + output);
-
-                    // 解析输出
-                    const lines = output.trim().split('\n');
-                    const pathLine = lines.find(line => line.startsWith('PATH:'));
-                    const distanceLine = lines.find(line => line.startsWith('DISTANCE:'));
-
-                    if (!pathLine) {
-                        throw new Error('未找到有效路径输出');
-                    }
-
-                    const path = pathLine.replace('PATH:', '').trim().split(' ').map(Number);
-                    let totalDistance = 0;
-
-                    if (distanceLine) {
-                        totalDistance = parseFloat(distanceLine.replace('DISTANCE:', '').trim());
-                        log(`总距离: ${totalDistance.toFixed(2)} 公里`);
-                    }
-
-                    // 转换为坐标点
-                    const points = path.map(index => {
-                        const location = locations[index];
-                        return [location.lng, location.lat];
-                    });
-
-                    log(`生成的坐标点: ${JSON.stringify(points)}`);
-
-                    // 显示结果面板
-                    const resultPanel = document.getElementById('result-panel');
-                    resultPanel.style.display = 'block';
-                    resultPanel.innerHTML = `
-                <div class="path-description">
-                    <h3>推荐路线</h3>
-                    <div class="distance-info">
-                        <p>总距离: ${totalDistance.toFixed(2)} 公里</p>
-                    </div>
-                    <ol>
-                        ${path.map(index => `<li>${locations[index].name}</li>`).join('')}
-                    </ol>
-                </div>
-            `;
-
-                    // 绘制路线
-                    driving.clear();
-                    log('开始调用高德地图API...');
-
-                    driving.search(
-                        points[0],
-                        points[points.length - 1],
-                        {
-                            waypoints: points.slice(1, -1)
-                        },
-                        function (status, result) {
-                            if (status === 'complete') {
-                                log('路线规划成功');
-                            } else {
-                                log(`路线规划失败: ${status}`);
-                                alert(`路线规划失败: ${status}`);
-                            }
-                        }
-                    );
-                } catch (error) {
-                    throw new Error('C++ 代码执行错误: ' + error.message);
-                }
-            } catch (error) {
-                log(`错误: ${error.message}`, true);
-                alert(error.message);
-            }
-        }
-        document.addEventListener('DOMContentLoaded', checkJSCPP);
-
-        // 调试信息输出函数
-        function log(message) {
-            const now = new Date();
-            const time = now.toLocaleTimeString();
-            const debugPanel = document.getElementById('debug-panel');
-            if (debugPanel) {
-                debugPanel.innerHTML += `[${time}] ${message}<br>`;
-                debugPanel.scrollTop = debugPanel.scrollHeight;
-            }
-            console.log(`[${time}] ${message}`);
+        if (startIndex === endIndex) {
+            throw new Error('起点和终点不能相同');
         }
 
-        // 确保调试面板存在
-        document.addEventListener('DOMContentLoaded', function () {
-            if (!document.getElementById('debug-panel')) {
-                const panel = document.createElement('div');
-                panel.id = 'debug-panel';
-                panel.style.cssText = `
-            max-height: 200px;
-            overflow-y: auto;
-            margin-top: 20px;
-            padding: 10px;
-            background: #fff;
-            border: 1px solid #ddd;
-            font-family: monospace;
-            font-size: 12px;
-        `;
-                document.getElementById('sidebar').appendChild(panel);
+        if (startIndex < 0 || startIndex >= locations.length || endIndex < 0 || endIndex >= locations.length) {
+            throw new Error('起点或终点索引超出范围');
+        }
+
+        const start = locations[startIndex];
+        const end = locations[endIndex];
+
+        debug(`规划路线: 从 ${start.name} 到 ${end.name}`);
+
+        // 准备C++代码输入数据
+        const input = `${startIndex} ${endIndex}\n`;
+        debug(`C++代码输入: ${input}`);
+                
+        // 检查JSCPP是否正确加载
+        console.log('JSCPP loaded status:', typeof JSCPP);
+        if (typeof JSCPP === 'undefined') {
+            debug('JSCPP 未加载, 检查 lib/jscpp.js 是否存在');
+            throw new Error('JSCPP 未正确加载');
+        }
+        debug("JSCPP 已正确加载");
+
+        // 加载 C++ 代码文件
+        debug("开始加载 route_planner.cpp 文件...");
+        let cpp_code;
+        try {
+            const response = await fetch('route_planner.cpp');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
-        });
+            cpp_code = await response.text();
+            debug("route_planner.cpp 加载成功");
+            debug(`C++代码长度: ${cpp_code.length} 字符`);
+        } catch (error) {
+            debug('加载 route_planner.cpp 失败: ' + error.message, true);
+            throw new Error('无法加载C++代码文件: ' + error.message);
+        }
+
+        // 配置JSCPP
+        const config = {
+            stdio: {
+                write: function(s) {
+                    debug("C++输出: " + s.replace(/\\n/g, '\n'));
+                }
+            }
+        };
+
+        // 运行C++代码
+        debug("开始执行C++代码...");
+        const output = JSCPP.run(cpp_code, input, config);
+        debug("C++代码原始输出：");
+        debug(output);
+
+        // 后续代码保持不变...
+        // 解析C++输出
+        const lines = output.split('\n');
+                let pathLine = lines.find(line => line.startsWith('PATH:'));
+                let distanceLine = lines.find(line => line.startsWith('DISTANCE:'));
+
+                debug("解析的路径行: " + pathLine);
+                debug("解析的距离行: " + distanceLine);
+
+                if (!pathLine) {
+                    throw new Error('未找到有效路径输出');
+                }
+
+                // 解析路径和距离
+                const path = pathLine.replace('PATH:', '').trim().split(' ').map(Number);
+                const distance = parseFloat(distanceLine.replace('DISTANCE:', '').trim());
+
+                debug("解析后的路径节点: " + JSON.stringify(path));
+                debug("解析后的距离: " + distance);
+
+                // 验证路径节点的有效性
+                for (const nodeIndex of path) {
+                    if (nodeIndex < 0 || nodeIndex >= locations.length) {
+                        throw new Error(`无效的节点索引: ${nodeIndex}`);
+                    }
+                    debug(`节点 ${nodeIndex} 对应地点: ${locations[nodeIndex].name}`);
+                }
+
+                // 检查路径的连续性
+                debug("检查路径连续性...");
+                for (let i = 0; i < path.length - 1; i++) {
+                    const current = path[i];
+                    const next = path[i + 1];
+                    debug(`检查路径段: ${locations[current].name} -> ${locations[next].name}`);
+                }
+
+                // 显示结果面板
+                const resultPanel = document.getElementById('result-panel');
+                resultPanel.style.display = 'block';
+
+                // 转换为坐标点
+                const points = path.map(index => [locations[index].lng, locations[index].lat]);
+                
+                debug(`路径点: ${JSON.stringify(points)}`);
+                debug(`路径长度: ${points.length}`);
+
+                // 使用高德地图API显示路线
+                if (points.length < 2) {
+                    throw new Error('路径点数量不足');
+                }
+
+                // 清除之前的路线
+                driving.clear();
+
+                // 使用高德地图API显示路线
+                driving.search(
+                    [start.lng, start.lat],
+                    [end.lng, end.lat],
+                    function(status, result) {
+                        if (status === 'complete') {
+                            debug('路线规划成功');
+                            
+                            // 更新结果面板显示
+                            resultPanel.innerHTML = `
+                                <div class="path-description">
+                                    <h3>推荐路线</h3>
+                                    <div class="distance-info">
+                                        <p>算法计算距离: ${distance.toFixed(2)} 公里</p>
+                                    </div>
+                                    <ol>
+                                        ${path.map(index => `<li>${locations[index].name}</li>`).join('')}
+                                    </ol>
+                                </div>
+                            `;
+                        } else {
+                            debug('地图路线绘制失败: ' + status, true);
+                            // 即使地图绘制失败，也显示算法计算的路径
+                            resultPanel.innerHTML = `
+                                <div class="path-description">
+                                    <h3>推荐路线（地图显示失败）</h3>
+                                    <div class="distance-info">
+                                        <p>算法计算距离: ${distance.toFixed(2)} 公里</p>
+                                    </div>
+                                    <ol>
+                                        ${path.map(index => `<li>${locations[index].name}</li>`).join('')}
+                                    </ol>
+                                </div>
+                            `;
+                        }
+                    }
+                );
+        
+    } catch (error) {
+        debug('路线规划错误: ' + error.message, true);
+        alert(error.message);
+    }
+}
 
         function resetMap() {
             try {
@@ -550,141 +436,7 @@
             }
         }
 
-        window.onload = function () {
-            debug('页面加载完成，开始初始化...');
-            try {
-                initMap();
-            } catch (error) {
-                debug('初始化失败: ' + error.message, true);
-            }
-        };
-
-        window.onerror = function (message, source, lineno, colno, error) {
-            debug(`全局错误: ${message}\n来源: ${source}\n行号: ${lineno}`, true);
-            return false;
-        };
-
-        // 初始化地图
-var map = new TMap.Map(document.getElementById('map'), {
-    center: new TMap.LatLng(30.658543, 104.065754),
-    zoom: 13
-});
-
-// 存储路径点的数组
-let pathPoints = [];
-let polylineLayer = null;
-
-// 创建路径展示函数
-function showPath(points) {
-    // 如果已经有路径，先清除
-    if (polylineLayer) {
-        polylineLayer.destroy();
-    }
-    
-    // 创建路径线条样式
-    const lineStyle = {
-        'path-0': {
-            color: '#FF0000', // 红色路径
-            width: 4, // 线条宽度
-            borderWidth: 1, // 边框宽度
-            showArrow: true // 显示箭头
-        }
-    };
-    
-    // 构建路径坐标数组
-    const path = points.map(point => {
-        return new TMap.LatLng(point.lat, point.lng);
-    });
-    
-    // 创建折线对象
-    polylineLayer = new TMap.MultiPolyline({
-        id: 'path-layer',
-        map: map,
-        styles: lineStyle,
-        geometries: [{
-            id: 'path-0',
-            paths: [path]
-        }]
-    });
-}
-
-// 处理迪杰斯特拉算法结果并显示路径
-function visualizePath(shortestPath) {
-    // shortestPath 是您的C++算法计算出的最短路径点数组
-    // 需要将路径点转换为经纬度坐标
-    const pathCoordinates = shortestPath.map(point => ({
-        lat: point.latitude,
-        lng: point.longitude
-    }));
-    
-    // 显示路径
-    showPath(pathCoordinates);
-}
-
-// 选点事件处理
-let startPoint = null;
-let endPoint = null;
-
-map.on('click', function(evt) {
-    const latLng = evt.latLng;
-    
-    if (!startPoint) {
-        startPoint = latLng;
-        // 添加起点标记
-        new TMap.MultiMarker({
-            map: map,
-            styles: {
-                "start": new TMap.MarkerStyle({
-                    width: 25,
-                    height: 35,
-                    anchor: { x: 12.5, y: 35 },
-                    src: 'start-marker.png'
-                })
-            },
-            geometries: [{
-                id: 'start',
-                position: startPoint,
-                styleId: 'start'
-            }]
-        });
-    } else if (!endPoint) {
-        endPoint = latLng;
-        // 添加终点标记
-        new TMap.MultiMarker({
-            map: map,
-            styles: {
-                "end": new TMap.MarkerStyle({
-                    width: 25,
-                    height: 35,
-                    anchor: { x: 12.5, y: 35 },
-                    src: 'end-marker.png'
-                })
-            },
-            geometries: [{
-                id: 'end',
-                position: endPoint,
-                styleId: 'end'
-            }]
-        });
-        
-        // 调用您的C++迪杰斯特拉算法
-        // 这里需要通过WebAssembly或其他方式与C++代码交互
-        calculateShortestPath(startPoint, endPoint);
-    }
-});
-
-// 清除路径按钮事件处理
-document.getElementById('clearPath').onclick = function() {
-    if (polylineLayer) {
-        polylineLayer.destroy();
-    }
-    startPoint = null;
-    endPoint = null;
-    // 清除标记
-    map.remove('start');
-    map.remove('end');
-};
+        window.onload = initMap;
     </script>
 </body>
-
 </html>
