@@ -338,30 +338,47 @@
 
         let JSCPP_READY = false;
 
-        // 检查 JSCPP 是否加载
+        //checkJSCPP 函数
         function checkJSCPP() {
-            if (typeof JSCPP !== 'undefined') {
-                JSCPP_READY = true;
-                log('JSCPP 加载成功');
-            } else {
-                log('JSCPP 未加载，尝试重新加载...');
-                // 重新加载 JSCPP
-                const script = document.createElement('script');
-                script.src = "https://cdn.jsdelivr.net/npm/jscpp/dist/JSCPP.es5.min.js";
-                script.onload = () => {
+            return new Promise((resolve, reject) => {
+                if (typeof JSCPP !== 'undefined') {
                     JSCPP_READY = true;
-                    log('JSCPP 重新加载成功');
-                };
-                script.onerror = () => {
-                    log('JSCPP 加载失败，请检查网络连接');
-                };
-                document.head.appendChild(script);
-            }
+                    log('JSCPP 加载成功');
+                    resolve();
+                } else {
+                    log('JSCPP 未加载，尝试重新加载...');
+                    const script = document.createElement('script');
+                    script.src = "lib/jscpp.js";  // 使用本地路径
+                    script.onload = () => {
+                        JSCPP_READY = true;
+                        log('JSCPP 重新加载成功');
+                        resolve();
+                    };
+                    script.onerror = () => {
+                        const error = 'JSCPP 加载失败';
+                        log(error);
+                        reject(new Error(error));
+                    };
+                    document.head.appendChild(script);
+                }
+            });
         }
 
-        function processOutput(output) {
-            // 分离实际输出和调试信息
+
+
+        function processError(output) {
             const lines = output.split('\n');
+            for (const line of lines) {
+                if (line.startsWith('ERROR:')) {
+                    return line.substring(7).trim();
+                }
+            }
+            return null;
+        }
+
+        // 修复 processOutput 函数
+        function processOutput(output) {
+            const lines = output.trim().split('\n');
             const pathLine = lines.find(line => !line.startsWith('DEBUG:') && line.trim().length > 0);
 
             if (!pathLine) {
@@ -375,20 +392,12 @@
             return pathLine.trim();
         }
 
-
-        function processError(output) {
-            const lines = output.split('\n');
-            for (const line of lines) {
-                if (line.startsWith('ERROR:')) {
-                    return line.substring(7).trim();
-                }
-            }
-            return null;
-        }
-
+        // 修复 planRoute 函数
         async function planRoute() {
             try {
+                await checkJSCPP();
                 log('开始规划路线...');
+
                 const startSelect = document.getElementById('start-point');
                 const endSelect = document.getElementById('end-point');
 
@@ -406,100 +415,97 @@
 
                 log(`规划路线: 从 ${start.name}(${startIndex}) 到 ${end.name}(${endIndex})`);
 
-                // 读取C++代码
+                // 读取 C++ 代码文件
                 const response = await fetch('route_planner.cpp');
+                if (!response.ok) {
+                    throw new Error('无法加载 C++ 代码文件');
+                }
                 const cppCode = await response.text();
-                log('C++代码已加载');
 
-                // 准备输入
+                // 准备输入数据
                 const input = `${startIndex} ${endIndex}\n`;
-                log(`输入数据: "${input}"`);
 
-                // 运行C++代码
-                const output = JSCPP.run(cppCode, input);
-                log('C++代码执行完成');
-                log(`原始输出: "${output}"`);
-
-                // 检查错误
-                const error = processError(output);
-                if (error) {
-                    throw new Error(error);
-                }
-
-                // 解析输出
-                const lines = output.split('\n');
-                const pathLine = lines.find(line => line.startsWith('PATH: '));
-                const distanceLine = lines.find(line => line.startsWith('DISTANCE: '));
-
-                if (!pathLine) {
-                    const noPath = lines.find(line => line === 'NO_PATH');
-                    if (noPath) {
-                        throw new Error('找不到可行的路径');
-                    }
-                    throw new Error('无法解析路径输出');
-                }
-
-                const pathStr = pathLine.replace('PATH: ', '').trim();
-                log(`处理后的路径字符串: "${pathStr}"`);
-
-                const path = pathStr.split(' ').map(Number);
-                log(`解析后的路径数组: [${path.join(', ')}]`);
-
-                // 解析距离
-                let totalDistance = 0;
-                if (distanceLine) {
-                    totalDistance = parseFloat(distanceLine.replace('DISTANCE: ', '').trim());
-                    log(`总距离: ${totalDistance.toFixed(2)} 公里`);
-                }
-
-                // 转换为坐标点
-                const points = path.map(index => {
-                    const location = locations[index];
-                    return [location.lng, location.lat];
-                });
-
-                log(`生成的坐标点: ${JSON.stringify(points)}`);
-
-                // 显示结果面板
-                const resultPanel = document.getElementById('result-panel');
-                resultPanel.style.display = 'block';
-                resultPanel.innerHTML = `
-            <div class="path-description">
-                <h3>推荐路线</h3>
-                <div class="distance-info">
-                    <p>总距离: ${totalDistance.toFixed(2)} 公里</p>
-                </div>
-                <ol>
-                    ${path.map(index => `<li>${locations[index].name}</li>`).join('')}
-                </ol>
-            </div>
-        `;
-
-                // 绘制路线
-                driving.clear();
-                log('开始调用高德地图API...');
-
-                driving.search(
-                    points[0],
-                    points[points.length - 1],
-                    {
-                        waypoints: points.slice(1, -1)
-                    },
-                    function (status, result) {
-                        if (status === 'complete') {
-                            log('路线规划成功');
-                        } else {
-                            log(`路线规划失败: ${status}`);
-                            alert(`路线规划失败: ${status}`);
+                // 配置 JSCPP 运行选项
+                const config = {
+                    stdio: {
+                        write: function (s) {
+                            log("C++ 输出: " + s);
                         }
                     }
-                );
+                };
+
+                // 执行 C++ 代码并处理结果
+                try {
+                    const output = JSCPP.run(cppCode, input, config);
+                    log("C++ 执行结果: " + output);
+
+                    // 解析输出
+                    const lines = output.trim().split('\n');
+                    const pathLine = lines.find(line => line.startsWith('PATH:'));
+                    const distanceLine = lines.find(line => line.startsWith('DISTANCE:'));
+
+                    if (!pathLine) {
+                        throw new Error('未找到有效路径输出');
+                    }
+
+                    const path = pathLine.replace('PATH:', '').trim().split(' ').map(Number);
+                    let totalDistance = 0;
+
+                    if (distanceLine) {
+                        totalDistance = parseFloat(distanceLine.replace('DISTANCE:', '').trim());
+                        log(`总距离: ${totalDistance.toFixed(2)} 公里`);
+                    }
+
+                    // 转换为坐标点
+                    const points = path.map(index => {
+                        const location = locations[index];
+                        return [location.lng, location.lat];
+                    });
+
+                    log(`生成的坐标点: ${JSON.stringify(points)}`);
+
+                    // 显示结果面板
+                    const resultPanel = document.getElementById('result-panel');
+                    resultPanel.style.display = 'block';
+                    resultPanel.innerHTML = `
+                <div class="path-description">
+                    <h3>推荐路线</h3>
+                    <div class="distance-info">
+                        <p>总距离: ${totalDistance.toFixed(2)} 公里</p>
+                    </div>
+                    <ol>
+                        ${path.map(index => `<li>${locations[index].name}</li>`).join('')}
+                    </ol>
+                </div>
+            `;
+
+                    // 绘制路线
+                    driving.clear();
+                    log('开始调用高德地图API...');
+
+                    driving.search(
+                        points[0],
+                        points[points.length - 1],
+                        {
+                            waypoints: points.slice(1, -1)
+                        },
+                        function (status, result) {
+                            if (status === 'complete') {
+                                log('路线规划成功');
+                            } else {
+                                log(`路线规划失败: ${status}`);
+                                alert(`路线规划失败: ${status}`);
+                            }
+                        }
+                    );
+                } catch (error) {
+                    throw new Error('C++ 代码执行错误: ' + error.message);
+                }
             } catch (error) {
                 log(`错误: ${error.message}`, true);
                 alert(error.message);
             }
         }
-
         document.addEventListener('DOMContentLoaded', checkJSCPP);
 
         // 调试信息输出函数
@@ -557,6 +563,127 @@
             debug(`全局错误: ${message}\n来源: ${source}\n行号: ${lineno}`, true);
             return false;
         };
+
+        // 初始化地图
+var map = new TMap.Map(document.getElementById('map'), {
+    center: new TMap.LatLng(30.658543, 104.065754),
+    zoom: 13
+});
+
+// 存储路径点的数组
+let pathPoints = [];
+let polylineLayer = null;
+
+// 创建路径展示函数
+function showPath(points) {
+    // 如果已经有路径，先清除
+    if (polylineLayer) {
+        polylineLayer.destroy();
+    }
+    
+    // 创建路径线条样式
+    const lineStyle = {
+        'path-0': {
+            color: '#FF0000', // 红色路径
+            width: 4, // 线条宽度
+            borderWidth: 1, // 边框宽度
+            showArrow: true // 显示箭头
+        }
+    };
+    
+    // 构建路径坐标数组
+    const path = points.map(point => {
+        return new TMap.LatLng(point.lat, point.lng);
+    });
+    
+    // 创建折线对象
+    polylineLayer = new TMap.MultiPolyline({
+        id: 'path-layer',
+        map: map,
+        styles: lineStyle,
+        geometries: [{
+            id: 'path-0',
+            paths: [path]
+        }]
+    });
+}
+
+// 处理迪杰斯特拉算法结果并显示路径
+function visualizePath(shortestPath) {
+    // shortestPath 是您的C++算法计算出的最短路径点数组
+    // 需要将路径点转换为经纬度坐标
+    const pathCoordinates = shortestPath.map(point => ({
+        lat: point.latitude,
+        lng: point.longitude
+    }));
+    
+    // 显示路径
+    showPath(pathCoordinates);
+}
+
+// 选点事件处理
+let startPoint = null;
+let endPoint = null;
+
+map.on('click', function(evt) {
+    const latLng = evt.latLng;
+    
+    if (!startPoint) {
+        startPoint = latLng;
+        // 添加起点标记
+        new TMap.MultiMarker({
+            map: map,
+            styles: {
+                "start": new TMap.MarkerStyle({
+                    width: 25,
+                    height: 35,
+                    anchor: { x: 12.5, y: 35 },
+                    src: 'start-marker.png'
+                })
+            },
+            geometries: [{
+                id: 'start',
+                position: startPoint,
+                styleId: 'start'
+            }]
+        });
+    } else if (!endPoint) {
+        endPoint = latLng;
+        // 添加终点标记
+        new TMap.MultiMarker({
+            map: map,
+            styles: {
+                "end": new TMap.MarkerStyle({
+                    width: 25,
+                    height: 35,
+                    anchor: { x: 12.5, y: 35 },
+                    src: 'end-marker.png'
+                })
+            },
+            geometries: [{
+                id: 'end',
+                position: endPoint,
+                styleId: 'end'
+            }]
+        });
+        
+        // 调用您的C++迪杰斯特拉算法
+        // 这里需要通过WebAssembly或其他方式与C++代码交互
+        calculateShortestPath(startPoint, endPoint);
+    }
+});
+
+// 清除路径按钮事件处理
+document.getElementById('clearPath').onclick = function() {
+    if (polylineLayer) {
+        polylineLayer.destroy();
+    }
+    startPoint = null;
+    endPoint = null;
+    // 清除标记
+    map.remove('start');
+    map.remove('end');
+};
     </script>
 </body>
 
