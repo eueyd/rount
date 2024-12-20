@@ -4,7 +4,11 @@ using namespace std;
 
 
     int main() {
-        int start, end;
+         cout << "Program started\n";  // 添加启动标记
+    
+    int start, end;
+    cout << "Reading input...\n";  // 添加读取输入标记
+    
     
     // 读取输入
     cin >> start >> end;
@@ -21,7 +25,19 @@ using namespace std;
     
 
     const int n = 21;
-    double distances[n][n] = {1000};
+     // 初始化距离数组，全部设置为一个很大的值
+    double distances[21][21];
+    for(int i = 0; i < n; i++) {
+        for(int j = 0; j < n; j++) {
+            distances[i][j] = 1e9;
+        }
+    }
+    
+    // 设置每个点到自己的距离为0
+    for(int i = 0; i < n; i++) {
+        distances[i][i] = 0;
+    }
+    cout << "Initializing distances...\n";
 
     // 东湖公园的连接 (0)
     distances[0][1] = distances[1][0] = 5.2;   // 成都东站
@@ -102,7 +118,7 @@ using namespace std;
     cout << "Distances initialized" << endl;
 double dist[n];
     int prev[n];
-    int visited[n] = {0};
+    bool visited[n] = {false}; 
 
     // 初始化
     for (int i = 0; i < n; i++) {
@@ -111,6 +127,7 @@ double dist[n];
     }
     dist[start] = 0;
 
+cout << "Starting Dijkstra algorithm...\n";
     // Dijkstra算法
     for (int i = 0; i < n - 1; i++) {
         double min_dist = 1e9;
@@ -123,7 +140,10 @@ double dist[n];
             }
         }
 
-        if (u == -1) break;
+                if (u == -1) {
+            cout << "No path found (1)\n";
+            break;
+        }
         
         visited[u] = 1;
 
@@ -135,20 +155,31 @@ double dist[n];
             }
         }
     }
-
-    if (prev[end] == -1) {
-        printf("NO_PATH\n");
-        return 0;
+  cout << "Dijkstra completed\n";
+  //finding
+   if (dist[end] == 1e9) {
+        cout << "No path found (2)\n";
+        return 1;
     }
+   
 
     // 构建路径
-    int path[n];
+    
+     int path[MAX_LOCATIONS];
     int path_len = 0;
     for (int v = end; v != -1; v = prev[v]) {
         path[path_len++] = v;
     }
 
-        // 输出结果
-    cout << "PATH: " << start << " " << end << "\n";
-    cout << "DISTANCE: 10.5\n";  // 示例距离
+     // 输出路径
+    cout << "PATH:";
+    for (int i = path_len - 1; i >= 0; i--) {
+        cout << " " << path[i];
+    }
+    cout << "\n";
+
+    // 输出总距离
+    cout << "DISTANCE: " << dist[end] << "\n";
+    
+    cout << "Program completed\n";
     return 0;}
