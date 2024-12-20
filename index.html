@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -118,6 +119,7 @@
         }
     </style>
 </head>
+
 <body>
     <div id="sidebar">
         <h2>成都景点路线规划</h2>
@@ -141,13 +143,15 @@
             securityJsCode: '9cf010b11855b6a170165c8258a4ff8a',
         }
     </script>
-    <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=6ebca79a4a23917ec971808d8d249dc1&plugin=AMap.Scale,AMap.ToolBar,AMap.Driving"></script>
+    <script type="text/javascript"
+        src="https://webapi.amap.com/maps?v=2.0&key=6ebca79a4a23917ec971808d8d249dc1&plugin=AMap.Scale,AMap.ToolBar,AMap.Driving"></script>
     <script type="text/javascript">
         window._AMapSecurityConfig = {
             securityJsCode: '9cf010b11855b6a170165c8258a4ff8a',
         }
     </script>
-    <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=6ebca79a4a23917ec971808d8d249dc1&plugin=AMap.Scale,AMap.ToolBar,AMap.Driving"></script>
+    <script type="text/javascript"
+        src="https://webapi.amap.com/maps?v=2.0&key=6ebca79a4a23917ec971808d8d249dc1&plugin=AMap.Scale,AMap.ToolBar,AMap.Driving"></script>
     <script src="lib/jscpp.js"></script>
     <script>
         const locations = [
@@ -256,49 +260,246 @@
                 debug('选择框初始化失败: ' + error.message, true);
             }
         }
+        /* async function planRoute() {
+            let outputBuffer = '';
 
-        async function planRoute() {
-    // 声明在顶部，避免重复声明
+
+            try {
+                debug('开始规划路线...');
+
+                const startSelect = document.getElementById('start-point');
+                const endSelect = document.getElementById('end-point');
+
+                const startIndex = parseInt(startSelect.value);
+                const endIndex = parseInt(endSelect.value);
+
+                debug(`检查起点终点索引: start=${startIndex}, end=${endIndex}`);
+                debug(`起点: ${locations[startIndex].name} (索引=${startIndex})`);
+                debug(`终点: ${locations[endIndex].name} (索引=${endIndex})`);
+
+                if (startIndex === endIndex) {
+                    throw new Error('起点和终点不能相同');
+                }
+
+                if (startIndex < 0 || startIndex >= locations.length || endIndex < 0 || endIndex >= locations.length) {
+                    throw new Error('起点或终点索引超出范围');
+                }
+
+                const start = locations[startIndex];
+                const end = locations[endIndex];
+
+                debug(`规划路线: 从 ${start.name} 到 ${end.name}`);
+
+                // 初始化输入和输出缓冲区
+                outputBuffer = '';
+                const inputStr = `${startIndex} ${endIndex}\n`;
+                let inputBuffer = inputStr.split('');
+                let inputPtr = 0;
+
+                // 配置 JSCPP
+                const config = {
+                    stdio: {
+                        write: function (s) {
+                            const str = s.toString();
+                            console.log('Write called with:', str); // Add this debug line
+                            outputBuffer += str;
+                            debug(`C++实时输出: [${str}]`);
+                        },
+                        read: function () {
+                            if (inputPtr >= inputBuffer.length) return '\n';
+                            return inputBuffer[inputPtr++];
+                        },
+                        eof: function () {
+                            return inputPtr >= inputBuffer.length;
+                        }
+                    },
+                    debug: true,
+                    memory: 51200
+                };
+
+                // 加载 C++ 代码文件
+                debug("开始加载 route_planner.cpp 文件...");
+                const response = await fetch('route_planner.cpp');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const cpp_code = await response.text();
+                debug("route_planner.cpp 加载成功");
+                debug(`C++代码长度: ${cpp_code.length} 字符`);
+
+                debug(`准备执行C++代码，输入: [${inputStr}]`);
+
+                const output = JSCPP.run(cpp_code, inputStr, {
+                    ...config,
+                    stdio: {
+                        ...config.stdio,
+                        write: function (s) {
+                            const str = s.toString();
+                            outputBuffer += str;
+                            console.log('Direct output:', str);
+                        }
+                    }
+                });
+                debug(`Direct JSCPP output: ${output}`);
+                debug(`C++代码执行完成`);
+                debug(`输出缓冲区内容: [${outputBuffer}]`);
+
+                // 解析输出
+                let path, distance;
+                if (outputBuffer && outputBuffer.length > 0) {
+                    debug(`开始解析输出`);
+                    const lines = outputBuffer.split('\n');
+                    debug(`输出行数: ${lines.length}`);
+
+                    // 显示所有输出行
+                    lines.forEach((line, index) => {
+                        debug(`第 ${index} 行: [${line}]`);
+                    });
+
+                    // 查找特定行
+                    const pathLine = lines.find(line => line.includes('PATH:'));
+                    const distanceLine = lines.find(line => line.includes('DISTANCE:'));
+
+                    debug(`找到路径行: [${pathLine || 'undefined'}]`);
+                    debug(`找到距离行: [${distanceLine || 'undefined'}]`);
+
+                    if (pathLine && distanceLine) {
+                        // 解析路径
+                        const pathMatch = pathLine.match(/PATH: (.+)/);
+                        if (pathMatch) {
+                            const pathStr = pathMatch[1];
+                            path = pathStr.split('->').map(s => parseInt(s.trim()));
+                            debug(`解析出的路径: [${path.join(' -> ')}]`);
+
+                            // 解析距离
+                            const distanceMatch = distanceLine.match(/DISTANCE: (.+)/);
+                            if (distanceMatch) {
+                                distance = parseFloat(distanceMatch[1]);
+                                debug(`解析出的距离: [${distance}]`);
+                            } else {
+                                throw new Error('无法解析距离值');
+                            }
+                        } else {
+                            throw new Error('无法解析路径格式');
+                        }
+                    } else {
+                        throw new Error(`未找到路径或距离行: pathLine=${!!pathLine}, distanceLine=${!!distanceLine}`);
+                    }
+                } else {
+                    throw new Error('输出缓冲区为空');
+                }
+
+                // 显示结果面板
+                const resultPanel = document.getElementById('result-panel');
+                resultPanel.style.display = 'block';
+
+                // 准备路径点
+                const points = path.map(index => [locations[index].lng, locations[index].lat]);
+
+                if (points.length < 2) {
+                    throw new Error('路径点数量不足');
+                }
+
+                // 清除之前的路线
+                driving.clear();
+
+                // 使用高德地图API显示路线
+                driving.search(
+                    new AMap.LngLat(start.lng, start.lat),
+                    new AMap.LngLat(end.lng, end.lat),
+                    {
+                        waypoints: points.slice(1, -1).map(p => new AMap.LngLat(p[0], p[1]))
+                    },
+                    function (status, result) {
+                        if (status === 'complete') {
+                            debug('路线规划成功');
+                            resultPanel.innerHTML = `
+                        <div class="path-description">
+                            <h3>推荐路线</h3>
+                            <div class="distance-info">
+                                <p>算法计算距离: ${distance.toFixed(2)} 公里</p>
+                            </div>
+                            <ol>
+                                ${path.map(index => `<li>${locations[index].name}</li>`).join('')}
+                            </ol>
+                        </div>
+                    `;
+                        } else {
+                            debug('地图路线绘制失败: ' + status, true);
+                            resultPanel.innerHTML = `
+                        <div class="path-description">
+                            <h3>推荐路线（地图显示失败）</h3>
+                            <div class="distance-info">
+                                <p>算法计算距离: ${distance.toFixed(2)} 公里</p>
+                            </div>
+                            <ol>
+                                ${path.map(index => `<li>${locations[index].name}</li>`).join('')}
+                            </ol>
+                        </div>
+                    `;
+                        }
+                    }
+                );
+
+            } catch (error) {
+                debug('路线规划错误: ' + error.message, true);
+                alert(error.message);
+            }
+        }
+ */
+ async function planRoute() {
     let outputBuffer = '';
-    
+
     try {
+        // 输出开始调试信息
         debug('开始规划路线...');
 
+        // 获取起点和终点
         const startSelect = document.getElementById('start-point');
         const endSelect = document.getElementById('end-point');
-
         const startIndex = parseInt(startSelect.value);
         const endIndex = parseInt(endSelect.value);
 
+        // 输出选择的点信息
         debug(`检查起点终点索引: start=${startIndex}, end=${endIndex}`);
         debug(`起点: ${locations[startIndex].name} (索引=${startIndex})`);
         debug(`终点: ${locations[endIndex].name} (索引=${endIndex})`);
 
+        // 验证起点终点
         if (startIndex === endIndex) {
             throw new Error('起点和终点不能相同');
         }
-
-        if (startIndex < 0 || startIndex >= locations.length || endIndex < 0 || endIndex >= locations.length) {
+        if (startIndex < 0 || startIndex >= locations.length || 
+            endIndex < 0 || endIndex >= locations.length) {
             throw new Error('起点或终点索引超出范围');
         }
 
-        const start = locations[startIndex];
-        const end = locations[endIndex];
+        // 配置JSCPP运行环境
+        const config = {
+            stdio: {
+                write: function(s) {
+                    const str = s.toString();
+                    outputBuffer += str;
+                    debug(`C++实时输出: [${str}]`);
+                },
+                read: function() {
+                    if (inputPtr >= inputBuffer.length) return '\n';
+                    return inputBuffer[inputPtr++];
+                },
+                eof: function() {
+                    return inputPtr >= inputBuffer.length;
+                }
+            },
+            debug: true,
+            memory: 51200
+        };
 
-        debug(`规划路线: 从 ${start.name} 到 ${end.name}`);
+        // 准备输入数据
+        const inputStr = `${startIndex} ${endIndex}\n`;
+        let inputBuffer = inputStr.split('');
+        let inputPtr = 0;
 
-        // 准备 C++ 代码输入
-        const input = startIndex.toString() + " " + endIndex.toString() + "\\n";
-        debug(`C++代码输入: ${input}`);
-
-        // 检查 JSCPP 加载
-        if (typeof JSCPP === 'undefined') {
-            debug('JSCPP 未加载', true);
-            throw new Error('JSCPP 未正确加载');
-        }
-        debug("JSCPP 已正确加载");
-
-        // 加载 C++ 代码文件
+        // 加载C++代码
         debug("开始加载 route_planner.cpp 文件...");
         const response = await fetch('route_planner.cpp');
         if (!response.ok) {
@@ -308,90 +509,54 @@
         debug("route_planner.cpp 加载成功");
         debug(`C++代码长度: ${cpp_code.length} 字符`);
 
-        // 执行前清空输出缓冲
-        outputBuffer = '';
-        debug("清空输出缓冲");
+        // 执行C++代码
+        debug(`准备执行C++代码，输入: [${inputStr}]`);
+        const output = JSCPP.run(cpp_code, inputStr, config);  // 执行 C++ 代码
+console.log(output);  // 打印输出，确保输出被捕获
+        outputBuffer=JSCPP.run(cpp_code, inputStr, config);
+        debug(`C++代码执行完成`);
+        debug(`输出缓冲区内容: [${outputBuffer}]`);
 
-        // 配置 JSCPP
-        const config = {
-            stdio: {
-                
-                write: function(s) {
-                    const str = s.toString();
-                    outputBuffer += str;
-                    debug("C++输出: [" + str + "]");
-                },
-                read: function() {
-                    if (inputPtr >= inputBuffer.length) {
-                        return '\n';
-                    }
-                    return inputBuffer[inputPtr++];
-                },
-                writeErr: function(s) {
-                    debug("C++错误输出: " + s, true);
-                    console.error("C++ error output:", s);
-                }
-            },
-            debug: true
-        };
-
-        // 运行 C++ 代码
-        outputBuffer = '';  // 清空输出缓冲
-        inputPtr = 0;      // 重置输入指针
-        debug("准备执行C++代码，输入为: " + input);
-        const output = JSCPP.run(cpp_code, input, config);
-        debug("C++代码执行完成");
-        debug("累积的输出: " + outputBuffer);
-
-        if (!outputBuffer.trim()) {
-            debug("警告：没有捕获到任何输出", true);
-            throw new Error('C++代码没有产生任何输出');
+        // 验证输出
+        if (!outputBuffer || outputBuffer.length === 0) {
+            throw new Error('输出缓冲区为空');
         }
-
-        // 尝试从输出缓冲中解析结果
-        const lines = outputBuffer.split('\\n');
-        debug("输出行数: " + lines.length);
-        
-        lines.forEach((line, index) => {
-            debug(`输出第 ${index + 1} 行: [${line}]`);
-        });
-
-        const pathLine = lines.find(line => line.trim().startsWith('PATH:'));
-        const distanceLine = lines.find(line => line.trim().startsWith('DISTANCE:'));
-
-        if (!pathLine) {
-            throw new Error('未找到路径输出');
-        }
-
-        debug("找到路径行: " + pathLine);
-        if (distanceLine) {
-            debug("找到距离行: " + distanceLine);
-        }
-
-        // 解析路径和距离
-        const path = pathLine.replace('PATH:', '').trim().split(' ').map(Number);
-        const distance = distanceLine ? 
-            parseFloat(distanceLine.replace('DISTANCE:', '').trim()) : 
-            0;
 
         // 显示结果面板
         const resultPanel = document.getElementById('result-panel');
         resultPanel.style.display = 'block';
 
+        // 解析输出
+        const lines = outputBuffer.split('\n');
+        const pathLine = lines.find(line => line.includes('PATH:'));
+        const distanceLine = lines.find(line => line.includes('DISTANCE:'));
+
+        if (!pathLine || !distanceLine) {
+            throw new Error('无法解析路径或距离信息');
+        }
+
+        // 解析路径和距离
+        const pathMatch = pathLine.match(/PATH: (.+)/);
+        const distanceMatch = distanceLine.match(/DISTANCE: (.+)/);
+
+        if (!pathMatch || !distanceMatch) {
+            throw new Error('路径或距离格式错误');
+        }
+
+        // 提取路径和距离
+        const path = pathMatch[1].split('->').map(s => parseInt(s.trim()));
+        const distance = parseFloat(distanceMatch[1]);
+
         // 准备路径点
         const points = path.map(index => [locations[index].lng, locations[index].lat]);
         
-        if (points.length < 2) {
-            throw new Error('路径点数量不足');
-        }
-
         // 清除之前的路线
         driving.clear();
 
         // 使用高德地图API显示路线
         driving.search(
-            new AMap.LngLat(start.lng, start.lat),
-            new AMap.LngLat(end.lng, end.lat),
+            new AMap.LngLat(points[0][0], points[0][1]),
+            new AMap.LngLat(points[points.length - 1][0], points[points.length - 1][1]),
             {
                 waypoints: points.slice(1, -1).map(p => new AMap.LngLat(p[0], p[1]))
             },
@@ -410,7 +575,7 @@
                         </div>
                     `;
                 } else {
-                    debug('地图路线绘制失败: ' + status, true);
+                    debug('地图路线绘制失败: ' + status);
                     resultPanel.innerHTML = `
                         <div class="path-description">
                             <h3>推荐路线（地图显示失败）</h3>
@@ -425,12 +590,12 @@
                 }
             }
         );
+
     } catch (error) {
-        debug('路线规划错误: ' + error.message, true);
+        debug('路线规划错误: ' + error.message);
         alert(error.message);
     }
 }
-
         function resetMap() {
             try {
                 driving.clear();
@@ -445,4 +610,5 @@
         window.onload = initMap;
     </script>
 </body>
+
 </html>
